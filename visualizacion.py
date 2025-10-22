@@ -4,6 +4,7 @@ from simulacion import simular_mm2
 from parametros import LAMBDA, MU, SERVIDORES
 import math
 
+
 def mm2_statistics(LAMBDA, MU, SERVIDORES):
     ro = LAMBDA / (SERVIDORES * MU)
     sum_terms = sum([(LAMBDA / MU) ** n / math.factorial(n) for n in range(SERVIDORES)])
@@ -15,6 +16,7 @@ def mm2_statistics(LAMBDA, MU, SERVIDORES):
     W = Wq + 1 / MU
     Pb = P0 * ((LAMBDA / MU) ** SERVIDORES) / math.factorial(SERVIDORES) * (ro / (1 - ro))
     return dict(P0=P0, ro=ro, Lq=Lq, L=L, Wq=Wq, W=W, Pb=Pb)
+
 
 resultados = mm2_statistics(LAMBDA, MU, SERVIDORES)
 resultados_label_text = (
@@ -33,10 +35,12 @@ resultados_label_text = (
     f"P ambos ocupados: {resultados['Pb']:.3f} ({resultados['Pb']*100:.1f}%)"
 )
 
+
 scene = canvas(title="Simulación MM2 Tráfico Y", width=1920, height=1080)
 scene.background = color.gray(0.15)
 scene.fullscreen = True
 scene.autoscale = False
+
 
 CARRIL_LARGO = 12
 POSTRAMAL_X = 6
@@ -48,6 +52,7 @@ POS_SALIDA_X = POS_RAMAL_X + RAMAL_LARGO + 1.2
 DISTANCIA_ENTRE_BOLAS = 0.8
 DURACION = 60
 
+
 # Carretera principal y ramales (con salida larga)
 box(pos=vector((POS_ENTRADA_X + POS_RAMAL_X) / 2, 0, 0), size=vector(POS_RAMAL_X - POS_ENTRADA_X, 0.12, 0.7), color=color.gray(0.4))
 box(pos=vector(POS_RAMAL_X + RAMAL_LARGO / 2, 0, RAMAL_DESVIO / 2), size=vector(RAMAL_LARGO, 0.12, 0.7), color=color.gray(0.4))
@@ -55,8 +60,10 @@ box(pos=vector(POS_RAMAL_X + RAMAL_LARGO / 2, 0, -RAMAL_DESVIO / 2), size=vector
 box(pos=vector(POS_RAMAL_X + RAMAL_LARGO + 0.6, 0, RAMAL_DESVIO / 2), size=vector(1.2, 0.12, 0.7), color=color.gray(0.35))
 box(pos=vector(POS_RAMAL_X + RAMAL_LARGO + 0.6, 0, -RAMAL_DESVIO / 2), size=vector(1.2, 0.12, 0.7), color=color.gray(0.35))
 
+
 servidor_pos = [vector(POS_RAMAL_X + RAMAL_LARGO, 0, RAMAL_DESVIO / 2), vector(POS_RAMAL_X + RAMAL_LARGO, 0, -RAMAL_DESVIO / 2)]
 servidores = [box(pos=servidor_pos[i], size=vector(1, 0.6, 0.85), color=color.blue) for i in range(SERVIDORES)]
+
 
 datos_label = label(
     pos=vector(POS_ENTRADA_X, 2, 0),
@@ -69,18 +76,25 @@ datos_label = label(
     opacity=0.78
 )
 
+
 eventos = simular_mm2(DURACION)
 
+
 autos, estado, destino, servidor_de_auto = [], [], [], []
+tiempo_llegada_servidor = []  # NUEVO: registrar cuando llega al servidor
+
 for i, evento in enumerate(eventos):
     s = sphere(pos=vector(POS_ENTRADA_X - i * DISTANCIA_ENTRE_BOLAS, 0.22, 0), radius=0.27, color=color.red)
     autos.append(s)
     estado.append("esperando")
     destino.append((POS_ENTRADA_X - i * DISTANCIA_ENTRE_BOLAS, 0))
     servidor_de_auto.append(None)
+    tiempo_llegada_servidor.append(None)  # NUEVO
+
 
 servidores_ocupados = [None, None]  # None = libre, id_auto = ocupado
 servidores_bloqueados = [False, False]  # Para evitar asignaciones duplicadas
+
 
 dt = 0.03
 t = 0
@@ -88,6 +102,7 @@ vel_avance = 1.2
 vel_desvio = 1.8
 vel_salida = 2.0
 DISTANCIA_MINIMA = 0.6
+
 
 def hay_espacio_adelante(idx, autos, estado):
     auto_actual = autos[idx]
@@ -105,21 +120,29 @@ def hay_espacio_adelante(idx, autos, estado):
                     return False
     return True
 
+
 while t < DURACION + 30:
-    # 1. Liberar servidores
+    # 1. Liberar servidores cuando termine el tiempo de servicio
     for s in range(SERVIDORES):
         if servidores_ocupados[s] is not None:
             idx = servidores_ocupados[s]
             evento = eventos[idx]
-            if evento.tiempo_salida is not None and t >= evento.tiempo_salida and estado[idx] == "saliendo":
-                servidores_ocupados[s] = None
-                servidores_bloqueados[s] = False
+            # CORREGIDO: verificar que haya pasado el tiempo de servicio desde que llegó al servidor
+            if tiempo_llegada_servidor[idx] is not None and evento.duracion_servicio is not None:
+                tiempo_en_servidor = t - tiempo_llegada_servidor[idx]
+                if tiempo_en_servidor >= evento.duracion_servicio and estado[idx] == "atendiendo":
+                    estado[idx] = "saliendo"
+                    destino[idx] = (POS_SALIDA_X, servidor_pos[servidor_de_auto[idx]].z)
+                    servidores_ocupados[s] = None
+                    servidores_bloqueados[s] = False
+
 
     # 2. Procesamiento de cada vehículo
     for i, evento in enumerate(eventos):
         if not autos[i].visible:
             continue
         auto = autos[i]
+
 
         # Estado: esperando
         if estado[i] == "esperando":
@@ -151,6 +174,7 @@ while t < DURACION + 30:
                 auto.pos.z = 0
                 auto.color = color.red
 
+
         # Estado: avanzando hacia bifurcación
         elif estado[i] == "avanzando":
             if hay_espacio_adelante(i, autos, estado):
@@ -163,6 +187,7 @@ while t < DURACION + 30:
                 estado[i] = "en_bifurcacion"
                 z_destino = RAMAL_DESVIO / 2 if servidor_de_auto[i] == 0 else -RAMAL_DESVIO / 2
                 destino[i] = (POS_RAMAL_X, z_destino)
+
 
         # Estado: en bifurcación (comienza desvío)
         elif estado[i] == "en_bifurcacion":
@@ -177,6 +202,7 @@ while t < DURACION + 30:
                 estado[i] = "en_ramal"
                 destino[i] = (servidor_pos[servidor_de_auto[i]].x - 0.5, servidor_pos[servidor_de_auto[i]].z)
 
+
         # Estado: en ramal (avanzando hacia servidor)
         elif estado[i] == "en_ramal":
             if hay_espacio_adelante(i, autos, estado):
@@ -188,15 +214,16 @@ while t < DURACION + 30:
             if abs(auto.pos.x - destino[i][0]) < 0.08:
                 estado[i] = "atendiendo"
                 destino[i] = (servidor_pos[servidor_de_auto[i]].x, servidor_pos[servidor_de_auto[i]].z)
+                tiempo_llegada_servidor[i] = t  # NUEVO: registrar cuando llega al servidor
 
-        # Estado: atendiendo (en el servidor)
+
+        # Estado: atendiendo (en el servidor) - PERMANECE QUIETO
         elif estado[i] == "atendiendo":
             auto.pos.x = servidor_pos[servidor_de_auto[i]].x
             auto.pos.z = servidor_pos[servidor_de_auto[i]].z
             auto.color = color.yellow
-            if evento.tiempo_salida is not None and t >= evento.tiempo_salida:
-                estado[i] = "saliendo"
-                destino[i] = (POS_SALIDA_X, servidor_pos[servidor_de_auto[i]].z)
+            # El cambio a "saliendo" ahora lo maneja el bloque de liberación de servidores
+
 
         # Estado: saliendo (abandonando el sistema)
         elif estado[i] == "saliendo":
@@ -208,8 +235,10 @@ while t < DURACION + 30:
             if auto.pos.x >= POS_SALIDA_X:
                 auto.visible = False
 
+
     rate(int(1 / dt))
     t += dt
+
 
 while True:
     rate(10)

@@ -2,12 +2,15 @@ import simpy
 import numpy as np
 from parametros import LAMBDA, MU, SERVIDORES
 
+
 class EventoAuto:
     def __init__(self, id, tiempo_llegada):
         self.id = id
         self.tiempo_llegada = tiempo_llegada
         self.tiempo_inicio_servicio = None
         self.tiempo_salida = None
+        self.duracion_servicio = None  # NUEVO: duración real del servicio
+
 
 def llegada_autos(env, sistema, eventos, duracion):
     id_auto = 0
@@ -19,14 +22,17 @@ def llegada_autos(env, sistema, eventos, duracion):
         intervalo = np.random.exponential(60 / LAMBDA)
         yield env.timeout(intervalo)
 
+
 def servicio_auto(env, sistema, evento):
     with sistema.request() as req:
         yield req
         evento.tiempo_inicio_servicio = env.now
-        # TIEMPO DE SERVICIO EXPONENCIAL, pero limitado entre 1 y 20 segundos
-        tiempo_servicio = np.clip(np.random.exponential(60 / MU), 1.0, 20.0)
+        # TIEMPO DE SERVICIO: mínimo 2 segundos, máximo 20 segundos
+        tiempo_servicio = np.clip(np.random.exponential(60 / MU), 2.0, 20.0)
+        evento.duracion_servicio = tiempo_servicio  # Guardamos la duración
         yield env.timeout(tiempo_servicio)
         evento.tiempo_salida = env.now
+
 
 def simular_mm2(duracion=60):
     env = simpy.Environment()
@@ -35,6 +41,7 @@ def simular_mm2(duracion=60):
     env.process(llegada_autos(env, sistema, eventos, duracion))
     env.run(until=duracion)
     return eventos
+
 
 if __name__ == '__main__':
     registros = simular_mm2(120)
