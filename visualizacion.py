@@ -19,7 +19,6 @@ def mm2_statistics(LAMBDA, MU, SERVIDORES):
 
 
 def crear_carro(pos, col):
-    """Crea un modelo 3D de carro"""
     partes = []
     partes.append(box(pos=vector(0, 0.06, 0), size=vector(0.6, 0.25, 0.35), color=col))
     partes.append(box(pos=vector(0, 0.26, 0), size=vector(0.35, 0.2, 0.3), color=col))
@@ -31,7 +30,6 @@ def crear_carro(pos, col):
 
 
 def crear_guardia(pos):
-    """Crea modelo 3D de guardia"""
     partes = []
     partes.append(cylinder(pos=vector(0, 0, 0), axis=vector(0, 0.45, 0), radius=0.18, color=vector(0.2, 0.3, 0.6)))
     partes.append(sphere(pos=vector(0, 0.6, 0), radius=0.15, color=vector(0.9, 0.75, 0.6)))
@@ -41,7 +39,6 @@ def crear_guardia(pos):
 
 
 def crear_bandera_venezuela(pos):
-    """Crea bandera de Venezuela"""
     partes = []
     partes.append(cylinder(pos=vector(0, 0, 0), axis=vector(0, 1.2, 0), radius=0.025, color=vector(0.5, 0.5, 0.5)))
     partes.append(sphere(pos=vector(0, 1.2, 0), radius=0.05, color=vector(0.8, 0.7, 0.2)))
@@ -55,7 +52,6 @@ def crear_bandera_venezuela(pos):
 
 
 def crear_garita_lateral(pos):
-    """Crea garita"""
     partes = []
     partes.append(box(pos=vector(0, 0, 0), size=vector(1.2, 0.08, 1.2), color=vector(0.65, 0.65, 0.65)))
     altura_pared = 1.2
@@ -70,7 +66,6 @@ def crear_garita_lateral(pos):
 
 
 def crear_edificio(pos, ancho, alto, profundo):
-    """Crea edificio"""
     partes = []
     partes.append(box(pos=vector(0, alto/2, 0), size=vector(ancho, alto, profundo), color=vector(0.75, 0.75, 0.78)))
     for i in range(3):
@@ -104,9 +99,9 @@ scene.background = vector(0.25, 0.35, 0.25)
 scene.range = 12
 scene.center = vector(2, 0, 0)
 
-ALTURA_CARRETERA = -0.55     # Altura de la carretera
-ALTURA_CARROS = -0.25        # Altura de los vehículos
-ALTURA_GARITAS = 0             # Altura de las garitas y edificios
+ALTURA_CARRETERA = -0.55     
+ALTURA_CARROS = -0.25       
+ALTURA_GARITAS = 0             
 
 CARRIL_LARGO = 8
 POS_ENTRADA_X = -4
@@ -115,7 +110,6 @@ RAMAL_LARGO = 3.5
 RAMAL_DESVIO = 1.8
 POS_SALIDA_X = POS_RAMAL_X + RAMAL_LARGO + 1.5
 
-# ===== CARRETERA =====
 box(pos=vector((POS_ENTRADA_X + POS_RAMAL_X) / 2, ALTURA_CARRETERA, 0), 
     size=vector(POS_RAMAL_X - POS_ENTRADA_X, 0.08, 0.9), 
     color=vector(0.3, 0.3, 0.35))
@@ -137,7 +131,6 @@ box(pos=vector(POS_RAMAL_X + RAMAL_LARGO + 0.75, ALTURA_CARRETERA, RAMAL_DESVIO 
 box(pos=vector(POS_RAMAL_X + RAMAL_LARGO + 0.75, ALTURA_CARRETERA, -RAMAL_DESVIO / 2), 
     size=vector(1.5, 0.08, 0.9), color=vector(0.3, 0.3, 0.35))
 
-# ===== GARITAS (VARIABLE) =====
 garita_pos = [
     vector(POS_RAMAL_X + RAMAL_LARGO - 0.5, ALTURA_GARITAS, RAMAL_DESVIO / 2 + 1.2),
     vector(POS_RAMAL_X + RAMAL_LARGO - 0.5, ALTURA_GARITAS, -RAMAL_DESVIO / 2 - 1.2)
@@ -147,7 +140,6 @@ garitas = [crear_garita_lateral(garita_pos[i]) for i in range(SERVIDORES)]
 guardias = [crear_guardia(garita_pos[i] + vector(-0.8, 0, 0)) for i in range(SERVIDORES)]
 banderas = [crear_bandera_venezuela(garita_pos[i] + vector(0.5, 1.35, 0)) for i in range(SERVIDORES)]
 
-# ===== EDIFICIOS (VARIABLE) =====
 crear_edificio(vector(POS_SALIDA_X + 2, ALTURA_GARITAS, 3), 2.5, 4, 1.5)
 crear_edificio(vector(POS_SALIDA_X + 2, ALTURA_GARITAS, -3), 2.0, 3.5, 1.2)
 crear_edificio(vector(POS_SALIDA_X + 5, ALTURA_GARITAS, 2), 1.8, 5, 1.3)
